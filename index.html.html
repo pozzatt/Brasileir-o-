@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Elencos do Brasileirão</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Anton&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap');
+
+  :root{
+    --bg: #0b2e1f;
+    --bg2: #0f3a28;
+    --line: #2f5c44;
+    --chalk: #f4f1e8;
+    --chalk-dim: #c9d6cb;
+    --yellow: #ffcc29;
+    --blue: #4f8ff7;
+    --red: #ff6b6b;
+  }
+  *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body{ height:100%; }
+  body{
+    margin:0;
+    background:
+      repeating-linear-gradient(180deg, rgba(255,255,255,0.015) 0px, rgba(255,255,255,0.015) 40px, transparent 40px, transparent 80px),
+      radial-gradient(circle at 50% -10%, #144a32 0%, var(--bg) 55%);
+    color: var(--chalk);
+    font-family: 'IBM Plex Sans', sans-serif;
+    min-height:100%;
+    padding-bottom: 40px;
+  }
+  .field-lines{
+    position:fixed; inset:0; pointer-events:none; opacity:.05; z-index:0;
+    background-image:
+      linear-gradient(var(--chalk) 1px, transparent 1px),
+      linear-gradient(90deg, var(--chalk) 1px, transparent 1px);
+    background-size: 60px 60px;
+  }
+  header{
+    position:relative; z-index:1;
+    padding: 22px 18px 16px;
+    text-align:center;
+    border-bottom: 1px dashed var(--line);
+  }
+  header h1{
+    font-family:'Anton', sans-serif;
+    font-weight:400;
+    letter-spacing: 0.5px;
+    font-size: 28px;
+    margin:0 0 2px;
+    color: var(--chalk);
+    text-transform: uppercase;
+  }
+  header h1 span{ color: var(--yellow); }
+  header p{
+    margin:0; font-size:12.5px; color: var(--chalk-dim); font-family:'IBM Plex Mono', monospace;
+  }
+
+  .tag{
+    display:inline-block; font-family:'IBM Plex Mono', monospace; font-size:9.5px;
+    color: var(--yellow); border:1px solid var(--line); border-radius:5px;
+    padding: 2px 5px; margin-top:4px; letter-spacing:.3px; opacity:.85;
+  }
+
+  .search-wrap{
+    position:relative; z-index:1; max-width:720px; margin: 10px auto 0; padding: 0 16px;
+  }
+  input[type="text"]{
+    width:100%; padding: 11px 14px; border-radius: 10px; border:1px solid var(--line);
+    background: rgba(0,0,0,0.2); color: var(--chalk); font-size:14px; font-family:'IBM Plex Sans', sans-serif;
+    outline:none;
+  }
+  input[type="text"]::placeholder{ color: var(--chalk-dim); opacity:.6; }
+  input[type="text"]:focus{ border-color: var(--yellow); }
+
+  main{
+    position:relative; z-index:1; max-width:720px; margin: 0 auto; padding: 16px;
+  }
+
+  .status{
+    text-align:center; color: var(--chalk-dim); font-family:'IBM Plex Mono', monospace;
+    font-size:13px; padding: 30px 10px; line-height:1.6;
+  }
+  .status.error{ color: var(--red); }
+
+  .team-grid{
+    display:grid; grid-template-columns: repeat(auto-fill, minmax(96px,1fr)); gap:10px;
+  }
+  .team-card{
+    background: rgba(255,255,255,0.03); border:1px solid var(--line); border-radius:12px;
+    padding: 12px 8px 10px; text-align:center; cursor:pointer;
+    transition: transform .12s ease, border-color .12s ease;
+  }
+  .team-card:active{ transform: scale(0.96); }
+  .team-card:hover{ border-color: var(--yellow); }
+  .team-card img{ width:44px; height:44px; object-fit:contain; margin-bottom:6px; filter: drop-shadow(0 2px 4px rgba(0,0,0,.4)); }
+  .team-card .badge-fallback{
+    width:44px; height:44px; margin: 0 auto 6px; border-radius:50%;
+    background: var(--line); display:flex; align-items:center; justify-content:center;
+    font-family:'Anton', sans-serif; font-size:16px; color: var(--chalk);
+  }
+  .team-card .tname{ font-size:11.5px; font-weight:600; line-height:1.25; color: var(--chalk); }
+
+  .back-btn{
+    display:inline-flex; align-items:center; gap:6px; background:none; border:none; color: var(--yellow);
+    font-family:'IBM Plex Mono', monospace; font-size:13px; cursor:pointer; padding:6px 0; margin-bottom:10px;
+  }
+
+  .team-header{
+    display:flex; align-items:center; gap:14px; padding: 6px 0 18px;
+    border-bottom: 1px dashed var(--line); margin-bottom: 16px;
+  }
+  .team-header img{ width:56px; height:56px; object-fit:contain; }
+  .team-header h2{
+    font-family:'Anton', sans-serif; font-weight:400; text-transform:uppercase;
+    font-size:22px; margin:0; letter-spacing:.3px;
+  }
+  .team-header .meta{ font-size:12px; color: var(--chalk-dim); font-family:'IBM Plex Mono', monospace; margin-top:2px; }
+
+  .pos-group{ margin-bottom: 22px; }
+  .pos-title{
+    font-family:'IBM Plex Mono', monospace; text-transform:uppercase; letter-spacing:1.5px;
+    font-size:11.5px; color: var(--yellow); margin: 0 0 10px; padding-left:2px;
+    display:flex; align-items:center; gap:8px;
+  }
+  .pos-title::after{ content:''; flex:1; height:1px; background: var(--line); }
+
+  .player-row{
+    display:flex; align-items:center; gap:12px; padding: 9px 4px;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+  }
+  .player-num{
+    width:30px; height:30px; border-radius:50%; background: rgba(255,255,255,0.04);
+    border:1px solid var(--line); display:flex; align-items:center; justify-content:center;
+    font-family:'IBM Plex Mono', monospace; font-size:12px; color: var(--chalk-dim); flex-shrink:0;
+  }
+  .player-name{ font-size:14.5px; font-weight:500; color: var(--chalk); flex:1; }
+  .player-nat{ font-size:11px; color: var(--chalk-dim); font-family:'IBM Plex Mono', monospace; }
+
+  .refresh-note{
+    text-align:center; font-size:11px; color: var(--chalk-dim); font-family:'IBM Plex Mono', monospace;
+    padding: 24px 10px 4px; opacity:.6;
+  }
+
+  .overlay{
+    position:fixed; inset:0; background: rgba(4,16,10,0.75); backdrop-filter: blur(2px);
+    z-index:10; display:flex; align-items:flex-end; justify-content:center;
+  }
+  .sheet{
+    background: var(--bg2); width:100%; max-width:720px; max-height:88vh; overflow-y:auto;
+    border-radius: 18px 18px 0 0; border:1px solid var(--line); border-bottom:none;
+    padding: 18px 20px 30px; position:relative;
+  }
+  .sheet-close{
+    position:sticky; top:0; float:right; background: rgba(0,0,0,0.3); border:1px solid var(--line);
+    color: var(--chalk); border-radius:50%; width:30px; height:30px; font-size:16px; cursor:pointer;
+  }
+  .p-header{ display:flex; gap:14px; align-items:center; margin-bottom:16px; clear:both; }
+  .p-header img{ width:64px; height:64px; border-radius:50%; object-fit:cover; border:2px solid var(--line); background:#0a2418; }
+  .p-header h3{ font-family:'Anton', sans-serif; font-weight:400; font-size:20px; margin:0; text-transform:uppercase; }
+  .p-header .p-sub{ font-size:12px; color: var(--yellow); font-family:'IBM Plex Mono', monospace; margin-top:3px; }
+
+  .p-grid{ display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:16px; }
+  .p-stat{ background: rgba(255,255,255,0.03); border:1px solid var(--line); border-radius:10px; padding:10px 12px; }
+  .p-stat .k{ font-size:10px; text-transform:uppercase; letter-spacing:1px; color: var(--chalk-dim); font-family:'IBM Plex Mono', monospace; margin-bottom:3px; }
+  .p-stat .v{ font-size:14px; font-weight:600; }
+
+  .p-note{
+    font-size:12px; color: var(--chalk-dim); font-family:'IBM Plex Mono', monospace;
+    border-top: 1px dashed var(--line); padding-top:12px; line-height:1.6;
+  }
+  .player-row{ cursor:pointer; }
+  .player-row:active{ background: rgba(255,255,255,0.04); }
+
+  ::-webkit-scrollbar{ width:8px; }
+  ::-webkit-scrollbar-thumb{ background: var(--line); border-radius:4px; }
+</style>
+</head>
+<body>
+<div class="field-lines"></div>
+
+<header>
+  <h1>Elencos do Futebol <span>Brasileiro</span></h1>
+  <p id="subtitle">carregando Série A e B...</p>
+</header>
+
+<div class="search-wrap">
+  <input type="text" id="searchInput" placeholder="Digite o nome do seu time...">
+</div>
+
+<main id="app">
+  <div class="status">Carregando Série A e B...</div>
+</main>
+
+<p class="refresh-note">Série A e B · dados ao vivo via TheSportsDB · toque num jogador para ver o perfil · recarregue a página para atualizar</p>
+
+<script>
+const API = 'https://www.thesportsdb.com/api/v1/json/3';
+const LEAGUES = [
+  { id: '4351', tag: 'Série A' },
+  { id: '4404', tag: 'Série B' },
+];
+
+// Perfis estendidos pesquisados manualmente (clubes anteriores, seleção).
+// Vazio por padrão — peça pra adicionar um time e eu preencho aqui, por chave = nome exato do jogador.
+const CURATED_PROFILES = {
+  // "Nome Exato Do Jogador": { clubesAnteriores: ["Time X (2019-2021)", "Time Y (2021-2023)"], selecao: "Seleção Brasileira Sub-20 (2022)" }
+};
+
+const state = {
+  allTeams: [],
+  playersByTeam: {},
+  view: 'list',
+};
+
+const app = document.getElementById('app');
+const subtitle = document.getElementById('subtitle');
+const searchInput = document.getElementById('searchInput');
+
+function escapeHtml(str){
+  return (str||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function calcAge(dateBorn){
+  if(!dateBorn) return null;
+  const d = new Date(dateBorn);
+  if(isNaN(d.getTime())) return null;
+  const diff = Date.now() - d.getTime();
+  return Math.floor(diff / (365.25 * 24 * 3600 * 1000));
+}
+
+async function fetchJSON(url){
+  const res = await fetch(url);
+  if(!res.ok) throw new Error('HTTP ' + res.status);
+  return res.json();
+}
+
+async function loadAllTeams(){
+  app.innerHTML = '<div class="status">Carregando Série A e B...</div>';
+  const results = await Promise.allSettled(
+    LEAGUES.map(l => fetchJSON(API + '/lookup_all_teams.php?id=' + l.id).then(d => ({ league: l, data: d })))
+  );
+
+  let merged = [];
+  let failedAny = false;
+  results.forEach(r => {
+    if(r.status === 'fulfilled'){
+      const teams = (r.value.data.teams || []).filter(t => (t.strSport||'').toLowerCase() === 'soccer');
+      teams.forEach(t => t._leagueTag = r.value.league.tag);
+      merged = merged.concat(teams);
+    } else {
+      failedAny = true;
+    }
+  });
+
+  const seen = new Set();
+  merged = merged.filter(t => {
+    if(seen.has(t.idTeam)) return false;
+    seen.add(t.idTeam);
+    return true;
+  });
+  merged.sort((a,b) => a.strTeam.localeCompare(b.strTeam));
+
+  state.allTeams = merged;
+
+  if(merged.length === 0){
+    app.innerHTML = '<div class="status error">Não consegui carregar os times agora (conexão ou API instável). Recarregue a página em instantes.</div>';
+    return;
+  }
+
+  subtitle.textContent = merged.length + ' times · Série A e B' + (failedAny ? ' (uma divisão falhou, puxe pra atualizar)' : '');
+  renderTeamList();
+}
+
+function renderTeamList(){
+  state.view = 'list';
+  const q = searchInput.value.trim().toLowerCase();
+  const filtered = q ? state.allTeams.filter(t => t.strTeam.toLowerCase().includes(q)) : state.allTeams;
+
+  if(filtered.length === 0){
+    app.innerHTML = '<div class="status">Nenhum time encontrado para "' + escapeHtml(q) + '". Confira a grafia ou tente um nome mais curto.</div>';
+    return;
+  }
+
+  // if searching, show a flat result list; otherwise show full grid (can be long, that's fine, it's scrollable)
+  app.innerHTML = '<div class="team-grid">' + filtered.map(t => `
+    <div class="team-card" data-id="${t.idTeam}" data-name="${escapeHtml(t.strTeam)}" data-badge="${t.strTeamBadge || ''}">
+      ${t.strTeamBadge
+        ? `<img src="${t.strTeamBadge}/small" alt="${escapeHtml(t.strTeam)}" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'badge-fallback',textContent:'${escapeHtml(t.strTeam.slice(0,3).toUpperCase())}'}))">`
+        : `<div class="badge-fallback">${escapeHtml(t.strTeam.slice(0,3).toUpperCase())}</div>`
+      }
+      <div class="tname">${escapeHtml(t.strTeam)}</div>
+      <div class="tag">${escapeHtml(t._leagueTag || '')}</div>
+    </div>
+  `).join('') + '</div>';
+
+  document.querySelectorAll('.team-card').forEach(card => {
+    card.addEventListener('click', () => openTeam(card.dataset.id, card.dataset.name, card.dataset.badge));
+  });
+}
+
+const POSITION_ORDER = ['Goalkeeper','Goleiro','Defender','Zagueiro','Lateral','Meio','Midfielder','Meia','Volante','Forward','Atacante','Attacker'];
+const POSITION_LABELS = {
+  goalkeeper: 'Goleiros', goleiro: 'Goleiros',
+  defender: 'Zagueiros', zagueiro: 'Zagueiros', 'centre-back':'Zagueiros', lateral:'Laterais',
+  midfielder: 'Meio-campo', meia: 'Meio-campo', volante: 'Meio-campo', 'midfield':'Meio-campo',
+  forward: 'Atacantes', atacante: 'Atacantes', attacker: 'Atacantes', striker: 'Atacantes', winger:'Atacantes',
+};
+
+function groupLabel(rawPos){
+  if(!rawPos) return 'Outros';
+  const key = rawPos.trim().toLowerCase();
+  for(const k in POSITION_LABELS){
+    if(key.includes(k)) return POSITION_LABELS[k];
+  }
+  return 'Outros';
+}
+const GROUP_ORDER = ['Goleiros','Zagueiros','Laterais','Meio-campo','Atacantes','Outros'];
+
+async function openTeam(id, name, badge){
+  state.view = 'team';
+  app.innerHTML = '<button class="back-btn" onclick="renderTeamList()">← voltar aos times</button>' +
+    `<div class="team-header">
+      ${badge ? `<img src="${badge}/medium" alt="">` : ''}
+      <div>
+        <h2>${escapeHtml(name)}</h2>
+        <div class="meta" id="teamMeta">carregando elenco...</div>
+      </div>
+    </div>
+    <div class="status">Buscando jogadores...</div>`;
+
+  if(state.playersByTeam[id]){
+    renderPlayers(state.playersByTeam[id]);
+    return;
+  }
+  try{
+    const data = await fetchJSON(API + '/lookup_all_players.php?id=' + id);
+    const players = (data.player || []) || [];
+    state.playersByTeam[id] = players;
+    renderPlayers(players);
+  }catch(e){
+    const body = document.querySelectorAll('.status');
+    if(body.length) body[body.length-1].outerHTML = '<div class="status error">Não consegui carregar o elenco agora. Toque em voltar e tente de novo.<br><br>' + escapeHtml(e.message) + '</div>';
+  }
+}
+
+function renderPlayers(players){
+  const meta = document.getElementById('teamMeta');
+  if(meta) meta.textContent = players.length + ' jogadores no elenco';
+
+  const statusEls = document.querySelectorAll('.status');
+  if(!players || players.length === 0){
+    if(statusEls.length) statusEls[statusEls.length-1].outerHTML = '<div class="status">A API ainda não tem o elenco completo deste time cadastrado.</div>';
+    return;
+  }
+
+  const groups = {};
+  players.forEach(p => {
+    const label = groupLabel(p.strPosition);
+    if(!groups[label]) groups[label] = [];
+    groups[label].push(p);
+  });
+
+  let html = '';
+  GROUP_ORDER.forEach(label => {
+    if(!groups[label]) return;
+    const list = groups[label].sort((a,b) => (a.strPlayer||'').localeCompare(b.strPlayer||''));
+    html += `<div class="pos-group">
+      <div class="pos-title">${label} · ${list.length}</div>
+      ${list.map(p => `
+        <div class="player-row" data-id="${p.idPlayer}">
+          <div class="player-num">${p.strNumber || '–'}</div>
+          <div class="player-name">${escapeHtml(p.strPlayer)}</div>
+          <div class="player-nat">${escapeHtml(p.strNationality || '')}</div>
+        </div>
+      `).join('')}
+    </div>`;
+  });
+
+  if(statusEls.length) statusEls[statusEls.length-1].outerHTML = html;
+
+  document.querySelectorAll('.player-row').forEach(row => {
+    row.addEventListener('click', () => {
+      const p = players.find(pl => pl.idPlayer === row.dataset.id);
+      if(p) openPlayer(p);
+    });
+  });
+}
+
+function openPlayer(p){
+  const age = calcAge(p.dateBorn);
+  const photo = p.strCutout || p.strThumb || p.strRender || '';
+  const curated = CURATED_PROFILES[p.strPlayer];
+
+  const overlay = document.createElement('div');
+  overlay.className = 'overlay';
+  overlay.innerHTML = `
+    <div class="sheet">
+      <button class="sheet-close">✕</button>
+      <div class="p-header">
+        ${photo ? `<img src="${photo}/small" alt="">` : `<div class="badge-fallback" style="width:64px;height:64px;font-size:20px;">${escapeHtml((p.strPlayer||'?').slice(0,2).toUpperCase())}</div>`}
+        <div>
+          <h3>${escapeHtml(p.strPlayer || '')}</h3>
+          <div class="p-sub">${escapeHtml(p.strPosition || '')} · #${escapeHtml(p.strNumber || '–')}</div>
+        </div>
+      </div>
+      <div class="p-grid">
+        <div class="p-stat"><div class="k">Idade</div><div class="v">${age ? age + ' anos' : '—'}</div></div>
+        <div class="p-stat"><div class="k">Nacionalidade</div><div class="v">${escapeHtml(p.strNationality || '—')}</div></div>
+        <div class="p-stat"><div class="k">Nascimento</div><div class="v">${escapeHtml(p.dateBorn || '—')}</div></div>
+        <div class="p-stat"><div class="k">Time atual</div><div class="v">${escapeHtml(p.strTeam || '—')}</div></div>
+        ${p.strHeight ? `<div class="p-stat"><div class="k">Altura</div><div class="v">${escapeHtml(p.strHeight)}</div></div>` : ''}
+        ${p.strWeight ? `<div class="p-stat"><div class="k">Peso</div><div class="v">${escapeHtml(p.strWeight)}</div></div>` : ''}
+      </div>
+      ${curated ? `
+        <div class="p-stat" style="margin-bottom:10px;">
+          <div class="k">Clubes anteriores</div>
+          <div class="v" style="font-weight:500; font-size:13px; line-height:1.6;">${curated.clubesAnteriores.map(escapeHtml).join('<br>')}</div>
+        </div>
+        ${curated.selecao ? `<div class="p-stat"><div class="k">Seleção</div><div class="v" style="font-weight:500; font-size:13px;">${escapeHtml(curated.selecao)}</div></div>` : ''}
+      ` : `
+        <div class="p-note">Histórico de clubes e passagens pela seleção ainda não pesquisados para este jogador — a API gratuita não tem esse dado de forma confiável. Peça pra eu pesquisar o elenco desse time e eu completo esse perfil.</div>
+      `}
+    </div>
+  `;
+  overlay.addEventListener('click', (e) => { if(e.target === overlay) overlay.remove(); });
+  overlay.querySelector('.sheet-close').addEventListener('click', () => overlay.remove());
+  document.body.appendChild(overlay);
+}
+
+let searchDebounce;
+searchInput.addEventListener('input', () => {
+  clearTimeout(searchDebounce);
+  searchDebounce = setTimeout(() => {
+    if(state.view === 'list'){
+      renderTeamList();
+    }
+  }, 150);
+});
+
+loadAllTeams();
+</script>
+</body>
+</html>
