@@ -14,7 +14,7 @@ jobs:
         with:
           node-version: 20
 
-      - name: Instalar dependências
+      - name: Instalar dependencias
         run: |
           npm install
           npx expo install --fix
@@ -29,6 +29,7 @@ jobs:
         shell: bash
         run: |
           cd ios
+          set +e
           xcodebuild \
             -workspace PozzattClub.xcworkspace \
             -scheme PozzattClub \
@@ -39,9 +40,21 @@ jobs:
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY="" \
-            build
+            build > ../xcodebuild.log 2>&1
+          code=$?
+          if [ $code -ne 0 ]; then
+            grep -E "error:|BUILD FAILED|build commands failed" ../xcodebuild.log | grep -v "warning:" | head -15 | while IFS= read -r l; do echo "::error::${l:0:400}"; done
+          fi
+          exit $code
 
-      - name: Empacotar .ipa
+      - name: Guardar log completo
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: xcodebuild-log
+          path: xcodebuild.log
+
+      - name: Empacotar ipa
         run: |
           mkdir -p Payload
           cp -R ios/build/Build/Products/Release-iphoneos/PozzattClub.app Payload/
