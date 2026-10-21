@@ -1,0 +1,53 @@
+name: Build Android APK
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Instalar dependencias
+        run: |
+          npm install
+          npx expo install --fix
+
+      - name: Gerar projeto Android
+        run: npx expo prebuild --platform android --no-install
+
+      - name: Compilar APK
+        shell: bash
+        run: |
+          cd android
+          chmod +x gradlew
+          set +e
+          ./gradlew assembleRelease --no-daemon > ../gradle.log 2>&1
+          code=$?
+          if [ $code -ne 0 ]; then
+            grep -E "error:|FAILED|What went wrong|Execution failed|Could not" ../gradle.log | head -15 | while IFS= read -r l; do echo "::error::${l:0:400}"; done
+          fi
+          exit $code
+
+      - name: Guardar log completo
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gradle-log
+          path: gradle.log
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: PozzattClub-apk
+          path: android/app/build/outputs/apk/release/app-release.apk
